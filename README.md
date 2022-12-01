@@ -33,3 +33,6 @@ dotnet run
 komutlarını çalıştırarak API projesini çalıştırınız
 
 - `apiURL /swagger` adresinden api'ı test edebilirsiniz
+
+
+![mimari özet](https://github.com/burcunihal/hepsiburadaChallenge/blob/main/arcdiag.png)
