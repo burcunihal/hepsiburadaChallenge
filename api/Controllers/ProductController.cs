@@ -30,6 +30,8 @@ namespace api.Controllers
         [HttpGet]
         public async Task<List<Product>> GetAllProducts()
         {
+
+            
             // TODO Create View Model
             // IMPORTANT sadece test için oluşturulmuştur. !!!
             return await _productService.GetAllAsync();
@@ -37,16 +39,27 @@ namespace api.Controllers
         [HttpGet("{id:length(24)}")]
         public async Task<ActionResult<ProductViewModel>> Get(string id)
         {
-            var product = await _productService.GetById(id);
-            var cacheData = _cacheService.GetData < IEnumerable < Product >> ("product");
-
-            if (product is null)
+            Product product;
+            var cacheData = _cacheService.GetData<Product>("product");
+            if (cacheData != null)
             {
-                return NotFound();
+                product = cacheData;//.Where(x => x._id == id).FirstOrDefault();
+            }
+            else
+            {
+                product = await _productService.GetById(id);
+                if (product is null)
+                {
+                    return NotFound();
+                }
+                var expirationTime = DateTimeOffset.Now.AddMinutes(5.0);
+                _cacheService.SetData<Product>("product", product, expirationTime);
+
             }
 
+
             var category = await _categoryService.GetById(product.categoryId);
-            
+
             ProductViewModel productViewModel = new ProductViewModel();
             productViewModel._id = product._id;
             productViewModel.categoryId = category;
@@ -67,7 +80,7 @@ namespace api.Controllers
             product.currency = newProduct.currency;
             product.description = newProduct.description;
             product.name = newProduct.name;
-            product.price= newProduct.price;
+            product.price = newProduct.price;
             await _productService.CreateAsync(product);
 
             return CreatedAtAction(nameof(GetAllProducts), newProduct);

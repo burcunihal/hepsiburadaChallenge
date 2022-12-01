@@ -1,4 +1,5 @@
 
+using api.Helpers;
 using api.Interfaces;
 using Newtonsoft.Json;
 using StackExchange.Redis;
@@ -15,7 +16,7 @@ namespace api.Services
 
         private void ConfigureRedis()
         {
-            // _database = ConnectionHelper.Connection.GetDatabase();
+             _database = CacheConnHelper.Connection.GetDatabase();
 
         }
         public T GetData<T>(string key)
@@ -34,7 +35,7 @@ namespace api.Services
             var isSet = _database.StringSet(key, JsonConvert.SerializeObject(value), expiryTime);
             return isSet;
         }
-        
+
         public object RemoveData(string key)
         {
             bool _isKeyExist = _database.KeyExists(key);
