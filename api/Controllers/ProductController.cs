@@ -30,30 +30,65 @@ namespace api.Controllers
         [HttpGet]
         public async Task<List<Product>> GetAllProducts()
         {
+            //tüm ürünleri 5 dakikalığına cache'e ekleme
+            var cacheData = _cacheService.GetData<List<Product>>("AllProducts");
+            if (cacheData != null)
+            {
+                return cacheData;
+            }
+            var expirationTime = DateTimeOffset.Now.AddMinutes(5.0);
+            cacheData = await _productService.GetAllAsync();
+            _cacheService.SetData<IEnumerable<Product>>("AllProducts", cacheData, expirationTime);
 
-            
+
             // TODO Create View Model
             // IMPORTANT sadece test için oluşturulmuştur. !!!
-            return await _productService.GetAllAsync();
+            return cacheData;
         }
         [HttpGet("{id:length(24)}")]
         public async Task<ActionResult<ProductViewModel>> Get(string id)
         {
             Product product;
-            var cacheData = _cacheService.GetData<Product>("product");
+            var cacheData = _cacheService.GetData<List<Product>>("AllProducts");
+
+            
+
             if (cacheData != null)
             {
-                product = cacheData;//.Where(x => x._id == id).FirstOrDefault();
+                //cache var
+                product = cacheData.Where(x => x._id == id).FirstOrDefault(); //filter
+                if (product == null)
+                {
+                    //check db
+                    product = await _productService.GetById(id);
+                    if (product is null)
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        //cache'de yok ama veritabanında var
+                        cacheData.Add(product);
+                        var expirationTime = DateTimeOffset.Now.AddMinutes(5.0);
+                        _cacheService.SetData<IEnumerable<Product>>("AllProducts", cacheData, expirationTime);
+
+                    }
+                }
             }
             else
             {
+                //cache boş
                 product = await _productService.GetById(id);
                 if (product is null)
                 {
                     return NotFound();
                 }
+                //cache boş tüm ürünleri cache'e ekle
+                //TODO geçici çözümdür. düzletilecek
                 var expirationTime = DateTimeOffset.Now.AddMinutes(5.0);
-                _cacheService.SetData<Product>("product", product, expirationTime);
+                cacheData = await _productService.GetAllAsync();
+                _cacheService.SetData<IEnumerable<Product>>("AllProducts", cacheData, expirationTime);
+
 
             }
 
