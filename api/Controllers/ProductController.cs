@@ -51,7 +51,7 @@ namespace api.Controllers
             Product product;
             var cacheData = _cacheService.GetData<List<Product>>("AllProducts");
 
-            
+
 
             if (cacheData != null)
             {
@@ -105,6 +105,71 @@ namespace api.Controllers
             //TODO use mapper
 
             return productViewModel;
+        }
+
+        [HttpGet("/list")]
+        public async Task<ActionResult<List<ProductViewModel>>> GetByName(string name)
+        {
+            List<Product> products;
+            var cacheData = _cacheService.GetData<List<Product>>("AllProducts");
+            if (cacheData != null)
+            {
+                //cache var
+                products = cacheData.Where(x => x.name.Contains(name)).ToList(); //filter
+                if (products == null)
+                {
+                    //check db
+                    products = await _productService.GetByName(name);
+                    if (products is null)
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        //cache'de yok ama veritabanında var
+                        cacheData.AddRange(products);
+                        var expirationTime = DateTimeOffset.Now.AddMinutes(5.0);
+                        _cacheService.SetData<IEnumerable<Product>>("AllProducts", cacheData, expirationTime);
+
+                    }
+                }
+            }
+            else
+            {
+                //cache boş
+                products = await _productService.GetByName(name);
+                if (products is null)
+                {
+                    return NotFound();
+                }
+                //cache boş tüm ürünleri cache'e ekle
+                //TODO geçici çözümdür. düzletilecek
+                var expirationTime = DateTimeOffset.Now.AddMinutes(5.0);
+                cacheData = await _productService.GetAllAsync();
+                _cacheService.SetData<IEnumerable<Product>>("AllProducts", cacheData, expirationTime);
+
+
+            }
+
+            List<ProductViewModel> searchResult = new List<ProductViewModel>();
+            foreach (var product in products)
+            {
+                var category = await _categoryService.GetById(product.categoryId);
+
+                ProductViewModel productViewModel = new ProductViewModel();
+                productViewModel._id = product._id;
+                productViewModel.categoryId = category;
+                productViewModel.currency = product.currency;
+                productViewModel.description = product.description;
+                productViewModel.name = product.name;
+                productViewModel.price = product.price;
+                searchResult.Add(productViewModel);
+            }
+
+
+            //TODO use mapper
+
+            return searchResult;
         }
 
         [HttpPost]
