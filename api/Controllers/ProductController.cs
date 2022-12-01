@@ -190,6 +190,7 @@ namespace api.Controllers
         public async Task<IActionResult> Update(string id, Product updatedProduct)
         {
             //TODO add DTO
+            //TODO cache silinecek
             var existingProduct = await _productService.GetById(id);
 
             if (existingProduct is null)
