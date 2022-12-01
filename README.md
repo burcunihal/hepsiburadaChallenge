@@ -11,7 +11,6 @@ Burcu Nihal YAVUZ
 | Dotnet     | 6.0.101  |
 
 
-komutunu çalıştırınız
 
 - `docker-compose.yml` dosyası ile aynı klasördeyken aşağıdaki komutu çalıştırınız
  ```
